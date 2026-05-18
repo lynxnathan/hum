@@ -19,7 +19,9 @@ Think of `.hum` as `Cargo.toml` for music (declarative intent) and `.scd` as `Ca
 
 The deeper bet: **the human–LLM–machine loop can be short enough to feel like playing an instrument**. The LLM is a compiler from human language to SuperCollider. The daemon is a dumb-but-fast bridge with zero LLM dependency at runtime. You can swap LLMs, swap models, swap humans — the runtime doesn't care.
 
-## What you write
+## What the LLM writes for you
+
+You talk. The LLM transcribes intent into `piece.hum` — your names, your phrasing, your structure. Example:
 
 ```yaml
 space-crackle:
@@ -44,7 +46,9 @@ laser-ricochet:
 
 Every top-level key is a **thing** — a named sound component. Fields are optional. Unknowns are legal. Your names are the names. See [project.md](project.md) for the full grammar (`at`, `until`, `does`, `where`, `has`, `within`, `every`, `mood`, `ref`, `synth`, `pipe`, `style`, `instrument`, `sample`).
 
-You can write `synth:` blocks inline (compiled directly to scsynth SynthDefs, no `sclang` involved):
+The LLM also writes the *sound recipes*. Two options, both authored by the model:
+
+1. **Inline `synth:` blocks** inside the `.hum` file — compiled directly to scsynth SynthDefs by `hum-rt`, no `sclang` involved:
 
 ```yaml
 kali-tandava:
@@ -61,6 +65,10 @@ kali-tandava:
 ```
 
 A range like `80~8000` is a trajectory the engine will sweep, not a single value.
+
+2. **Standalone `.scd` files** in `out/sc/` — full SuperCollider SynthDefs when inline IR isn't enough or when the model wants to escape into raw sclang. `hum-rt` discovers each `.scd` by filename and binds it to the matching thing in `piece.hum`. If both an inline `synth:` block and an `out/sc/<thing>.scd` exist for the same thing, the `.scd` wins — it's the escape hatch.
+
+You can hand-edit either file if you want — they're plain text — but the design assumes the LLM does the writing and you do the listening.
 
 ## What you get
 
