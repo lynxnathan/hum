@@ -1,0 +1,26 @@
+# hum.dict — shared vocabulary for this project
+# Format: term -> synth: block + context description
+
+laser:
+  synth:
+    osc: sine
+  context: bright, cutting, sci-fi
+  learned-from: glass (2026-03-22)
+
+warm:
+  synth:
+    filter: "lpf(cutoff: 800)"
+  context: soft, intimate, analog
+  learned-from: pulse (2026-03-22)
+
+haunted-echo:
+  synth:
+    fx: "delay(time: 0.5, feedback: 0.7)"
+  context: eerie, distant, ghostly
+  learned-from: ghost-machine (2026-03-22)
+
+breathing:
+  synth:
+    env: "adsr(a: 0.5, d: 0.1, s: 0.8, r: 1.0)"
+  context: alive, organic, pulsing
+  learned-from: pulse (2026-03-22)

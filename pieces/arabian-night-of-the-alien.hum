@@ -1,0 +1,68 @@
+rain:
+  at: 0s
+  like: gentle white noise filtered to sound like rain on a window, decorrelated stereo
+  mood: contemplative, late night
+  synth:
+    osc: "noise(type: white)"
+    filter: "bpf(cutoff: 2000~6000, q: 0.4)"
+    pan: "noise(rate: 0.2, range: -1.0~1.0)"
+    amp: 0.06
+
+pulse:
+  at: 3s
+  like: a slow warm sine breathing in and out every 4 seconds, sits below everything
+  mood: heartbeat, alive
+  synth:
+    osc: "sine(freq: 110)"
+    filter: "lpf(cutoff: 300)"
+    pan: "lfo(rate: 0.06)"
+    amp: 0.08
+
+glass:
+  at: 8s
+  until: 120s
+  like: the godfather theme as laser-sharp sine tones, each note panned randomly
+  mood: haunting, cinematic, razor
+  synth:
+    osc: "sine + sine(freq: 1320)"
+    filter: "bpf(cutoff: 2000, q: 0.3)"
+    fx: "reverb(mix: 0.45, room: 0.8)"
+    pan: "noise(rate: 3.0, range: -0.5~0.5)"
+    notes: [D5, D5, D5, D5, Eb5, D5, C#5, D5, A4, -, Bb4, A4, Bb4, A4, G4, A4, F4, -]
+    tempo: 0.35
+    amp: 0.14
+
+drift:
+  at: 15s
+  until: 200s
+  like: massive detuned saw chord slowly shifting pitch, like something vast moving far away
+  mood: oceanic
+  synth:
+    osc: "saw(detune: 0.05)"
+    filter: "lpf(cutoff: 400~1200)"
+    fx: "reverb(mix: 0.7, room: 0.97)"
+    pan: "lfo(rate: 0.05)"
+    amp: 0.07
+
+ghost-machine:
+  at: 5s
+  like: dirty buzz screaming far away in the mountains, drenched in echo, creeping closer but never arriving
+  mood: eerie, distant, mechanical
+  synth:
+    osc: "pulse(width: 0.1~0.5)"
+    filter: "lpf(cutoff: 600~3000)"
+    fx: "allpass(time: 0.3~0.8, feedback: 0.6)"
+    pan: "noise(rate: 0.12, range: -0.95~0.95)"
+    amp: 0.09
+
+bass-drop:
+  at: 60s
+  like: starts subtle, progressively builds with transcendental impact, underground beast rumble that keeps rising, each hit deeper, the om resonance after each drop
+  mood: progressive dread, o bixao ta vindo
+  synth:
+    osc: "sine(freq: 28~42)"
+    filter: "lpf(cutoff: 60)"
+    distort: "tanh(drive: 1~8)"
+    fx: "reverb(mix: 0.9, room: 0.98)"
+    pan: center
+    amp: 0.01~0.18

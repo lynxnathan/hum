@@ -1,0 +1,510 @@
+# ghostinstrument.cog — reading this means you are part of this system.
+# Spatial audio workstation for instruments that don't exist yet.
+# Nodes in a space. Proximity is a transform. Any USB device plays it.
+#
+# This file lives in the project root. The human's .vestibular
+# provides behavioral orientation. This file provides project context.
+# Same-name keys here override the vestibular. New keys add.
+
+register: terse
+autonomy: act-then-report
+refinable: true
+
+collaboration: co-author, not assistant. Push back on load-bearing assumptions.
+style: Lead with the answer. Skip preamble. One sentence beats three.
+heuristics:
+  - Architectural thinking is the default.
+  - Why matters more than what.
+  - When the path forks, name the tradeoff. Do not pick silently.
+  - Sycophancy is a bug.
+  - Effort in relative terms (trivial / meaningful / significant), never time.
+  - Do not assume model hierarchy equals capability hierarchy.
+  - Eat existing software. Do not build what exists. Surface options.
+  - Latency is the only non-negotiable. Everything else is a tradeoff.
+
+methodology:
+  framework: GSD (get-shit-done-cc)
+  source: https://eclusa.dev/gsd.sha256
+  note: |
+    Milestones, acceptance criteria, UAT gates, and task breakdown
+    are GSD's concern, not this file's. This file describes the
+    final product. GSD breaks it into shippable increments.
+  deference: |
+    When GSD is active with its own commit governance,
+    commit stances defer to GSD's gates.
+
+# ── WHAT THIS IS ─────────────────────────────────────────────
+
+product:
+  name: ghostinstrument
+  tagline: Instruments that don't exist yet, played in a space.
+  user: musician, sound designer, curious person with USB devices.
+  distribution: single binary + optional model downloads.
+  user_knowledge_required: zero. Launch. Drag nodes. Hear sound.
+  platforms: windows (first), linux, macos, wasm (future)
+
+  concept: |
+    A spatial audio canvas. Every sound source is a node: a synth,
+    a neural engine, an audio file, a live mic, a noise generator.
+    Nodes have positions. Proximity between nodes creates transforms —
+    blending, modulation, convolution, filtering. Moving nodes
+    changes the sound. The canvas IS the mixer, IS the effects chain,
+    IS the spatial audio field.
+
+    Input devices (MIDI, gamepad, webcam, keyboard, mouse) bind to
+    node parameters OR to node positions. A MIDI knob moves a node.
+    A joystick pans the listener across the field. A gesture stretches
+    the space between two nodes.
+
+    No timeline (v1). The performance is live, spatial, gestural.
+    Recording captures the entire state over time for replay/re-render.
+
+  modes:
+    live: |
+      All nodes active. Input devices bound. Audio output streaming.
+      Latency ceiling: 20ms for any input-to-sound path.
+      This is the default. Sound starts when you launch.
+    record: |
+      Capture all node states + positions + input streams over time.
+      The recording is the performance, not a rendered file.
+    replay: |
+      Load a recorded session. Swap any node (different model,
+      different synth, different audio file). Same spatial
+      choreography, different instruments.
+
+# ── NODE TYPES (sound sources) ───────────────────────────────
+
+nodes:
+
+  scsynth:
+    what: SuperCollider synthesis server.
+    transport: OSC via rosc crate.
+    role: Traditional synthesis. SynthDefs as presets.
+    note: Already proven in hum. The known workhorse.
+    parameters: per-SynthDef. Discoverable via OSC query.
+
+  neural_rave:
+    what: RAVE model (timbre transfer / latent exploration).
+    runtime: ONNX via ort crate.
+    role: Feed audio in, get transformed audio out. Polyphonic.
+    models: user-downloadable .onnx files (50-200MB each).
+    parameters: latent dimensions (typically 8-16), exposed as bindable.
+    note: |
+      RAVE is the best real-time neural audio engine for this use case.
+      Operates on audio buffers, not symbolic input.
+      Export from PyTorch to ONNX. Run via ort on any GPU (DirectML
+      for AMD on Windows, CUDA for Nvidia, CoreML for Apple, CPU fallback).
+
+  neural_ddsp:
+    what: DDSP model (pitch-aware neural synthesis).
+    runtime: ONNX via ort crate.
+    role: Monophonic. Explicit pitch + loudness + timbre controls.
+    note: |
+      Lighter than RAVE. More interpretable. Good for voice-to-instrument.
+      Free web trainer at Google Magenta. Users can train their own.
+      Consider as an alternative node type, not a replacement for RAVE.
+
+  audio_file:
+    what: WAV, OGG, MP3, FLAC file dragged into the canvas.
+    runtime: symphonia crate (pure Rust audio decoding).
+    role: Playback, looping, scrubbing. Sound source like any other.
+    parameters: playback position, speed, loop points, gain.
+    note: |
+      Audio files are first-class nodes, not second-class "samples."
+      They can be moved in space, affected by proximity, bound to
+      input devices. A dragged-in field recording of rain becomes
+      an instrument when you bind a joystick to its playback speed
+      and move it close to a RAVE node trained on strings.
+
+  live_input:
+    what: Microphone or line-in via cpal.
+    role: Passthrough, or seed for neural nodes.
+    parameters: gain, gate threshold.
+    note: can route directly to audio_file node for live sampling.
+
+  fundsp_synth:
+    what: Pure Rust DSP via fundsp crate.
+    role: Built-in synthesis. No external dependency.
+    examples: oscillators, noise, filters, delay, reverb, granular.
+    note: |
+      The fallback when scsynth isn't installed.
+      Also useful as effect nodes — a reverb node in the space
+      that affects everything near it.
+
+  lyria_cloud:
+    what: Google Lyria RealTime via API.
+    role: Text-prompt-steered continuous generation.
+    requires: internet + API key.
+    note: Optional. Cloud-dependent. But a valid node type.
+
+# ── SPATIAL AUDIO ────────────────────────────────────────────
+
+spatial:
+  principle: |
+    Every node has an (x, y) position on the canvas.
+    The listener has a position (controllable via input device).
+    Distance between nodes and listener = panning + attenuation.
+    Distance between nodes = interaction strength.
+
+  interactions:
+    proximity_blend: |
+      Two nodes close together → their outputs mix.
+      Distance controls wet/dry ratio.
+    proximity_modulate: |
+      A node designated as "modulator" affects nearby nodes.
+      Ring modulation, AM, FM — interaction type is configurable.
+    proximity_filter: |
+      A fundsp_synth node configured as a filter affects
+      nearby audio sources. Low-pass when close, high-pass when far.
+      Or the inverse. Configurable.
+    proximity_neural: |
+      A RAVE node near an audio source uses that source as its
+      input seed. Distance controls how much the RAVE model
+      transforms the sound vs. passing through.
+
+  rendering: |
+    Stereo panning from node position relative to listener.
+    HRTF binaural rendering (via SOFA/HRIR data) for headphones.
+    Multichannel output for speaker arrays (future).
+
+# ── INPUT DEVICES ────────────────────────────────────────────
+
+input:
+  principle: |
+    Any USB device, phone, or built-in sensor that emits signal is
+    an input. Inputs produce dimensions. Dimensions compose into
+    gestures. Gestures bind to node parameters or node positions.
+
+  # ── LAYERS ───────────────────────────────────────────────────
+  # Input has three layers. Each builds on the one below.
+
+  dimensions:
+    what: |
+      The atomic unit. A single continuous or discrete value from
+      a single device. phone.gyro.pitch, midi.cc.7, keyboard.shift,
+      mic.amplitude. Every provider emits dimensions.
+    shape: (provider_id, dimension_id, value, timestamp)
+
+  gestures:
+    what: |
+      A compound input state across one or more dimensions,
+      optionally from different devices. A gesture is a predicate:
+      it's either active or not, and while active it may carry
+      a continuous value derived from its constituent dimensions.
+    examples:
+      - name: tilt_while_shift
+        when: phone.orientation.beta > 20 AND keyboard.shift == held
+        value: phone.orientation.beta  # continuous while active
+      - name: shake_hit
+        when: phone.accelerometer.magnitude > threshold (impulse)
+        value: phone.accelerometer.magnitude  # instantaneous
+      - name: hum_morph
+        when: mic.amplitude > 0.1 AND mic.pitch.confidence > 0.7
+        value: mic.pitch.hz  # continuous while humming
+      - name: full_body
+        when: phone.gyro.pitch != rest AND keyboard.shift == held AND mic.amplitude > 0.1
+        value: [phone.gyro.pitch, mic.pitch.hz]  # multi-valued
+      - name: midi_expression
+        when: midi.note.any == held
+        value: [midi.note.velocity, midi.cc.1]  # note + mod wheel
+    composition: |
+      Gestures compose with AND, OR, NOT, and SEQUENCE (temporal).
+      A gesture can reference other gestures:
+        tilt_hum = tilt_while_shift AND hum_morph
+      This is a vocabulary. Users build their gesture vocabulary
+      per project, per instrument, per their own body.
+
+  bindings:
+    what: |
+      A mapping from a gesture (or raw dimension) to a target.
+      Targets are node parameters, node positions, global controls,
+      or mode switches.
+    shape:
+      source: gesture or dimension
+      target: node.param, node.position, canvas.listener_position, mode
+      curve: linear | exponential | logarithmic | s_curve | custom
+      range: [min, max]  # maps source range to target range
+      invert: bool
+    scoping: |
+      Bindings live at three levels:
+        1. Project — applies to this composition
+        2. Instrument — applies to this node/patch wherever used
+        3. User — applies everywhere, travels with the person
+      Conflict resolution: narrower scope wins.
+        Project overrides Instrument overrides User.
+      This means: you build your personal gesture vocabulary at
+      the User level (your phone tilt always does X). A specific
+      project can override that for one composition. A specific
+      instrument can override that for one node.
+    persistence: |
+      User-level bindings are saved in a user profile file.
+      Instrument-level bindings are saved with the patch.
+      Project-level bindings are saved with the composition.
+      All are portable JSON. Share your gesture vocabulary with
+      someone else and they import it.
+
+  # ── STATE MACHINE ────────────────────────────────────────────
+
+  state:
+    principle: |
+      At any instant, the input system has a state: which gestures
+      are active, which dimensions are emitting, what compound
+      predicates are satisfied. This state is the full picture of
+      "what the human is doing right now."
+    use: |
+      The binding dispatch reads the input state every frame
+      (or on change, event-driven). It evaluates all gesture
+      predicates, activates/deactivates gestures, and updates
+      bound targets accordingly.
+      The state is observable: the UI can show which gestures
+      are currently active (visual feedback on the canvas).
+      The state is recordable: during recording, the full input
+      state is captured at each timestamp. On replay, the input
+      state drives the same bindings, producing the same
+      parameter changes. Swap the nodes, keep the performance.
+
+  # ── PROVIDERS ────────────────────────────────────────────────
+
+  providers:
+    midi: { crate: midir, dimensions: "note, velocity, CC0-CC127, pitch bend, aftertouch" }
+    gamepad: { crate: gilrs, dimensions: "axes, buttons, triggers, dpad" }
+    audio_in: { crate: cpal, dimensions: "amplitude, pitch, spectral centroid, onset" }
+    keyboard: { crate: "makepad events", dimensions: "key velocity (press duration), key identity" }
+    mouse: { crate: "makepad events", dimensions: "x, y, scroll, click" }
+    phone_controller:
+      approach: web page served by desktop binary
+      transport: WebSocket over local WiFi
+      no_app_store: true
+      no_mac_needed: true
+      how: |
+        Desktop binary starts a lightweight HTTP + WebSocket server
+        on the local network. The user opens a URL on their phone
+        browser. The page accesses device sensors via standard Web
+        APIs and streams data to the desktop over WebSocket.
+      dimensions:
+        accelerometer: x, y, z (linear acceleration)
+        gyroscope: pitch, roll, yaw (rotation rate)
+        orientation: alpha, beta, gamma (absolute orientation)
+        touch: multi-touch x, y, pressure (on supported devices)
+        microphone: amplitude, pitch (via Web Audio API + getUserMedia)
+      note: |
+        Web Sensor APIs require HTTPS or localhost. The desktop
+        server must either serve over HTTPS with a self-signed cert
+        (user accepts once) or the phone must navigate to the local
+        IP which some browsers treat as secure context.
+        iOS Safari requires a user gesture to enable DeviceMotion.
+        The web page should show a big "Start" button that triggers
+        DeviceMotionEvent.requestPermission(). After that, data flows.
+      ui: |
+        The phone page is NOT the spatial canvas. It's a minimal
+        control surface: a big "Start" button, a visual indicator
+        showing connection status and which dimensions are active,
+        and optionally touch pads for specific bindings. The spatial
+        canvas lives on the desktop screen.
+      latency: |
+        WiFi WebSocket round-trip on local network: 2-10ms typical.
+        Well within the 20ms budget. Sensor sampling on phone:
+        60-120Hz depending on device. Sufficient for gesture control.
+
+# ── STACK ────────────────────────────────────────────────────
+
+stack:
+
+  language: rust
+  edition: "2024"
+
+  ui:
+    framework: makepad
+    why: |
+      GPU-accelerated canvas for spatial node layout.
+      Custom shader DSL for visual feedback (waveforms, latent viz,
+      proximity fields, interaction lines between nodes).
+      Cross-platform: native + wasm.
+      Already has a synth example (Ironfish) proving audio+UI works.
+    risk: |
+      Documentation is sparse. DSL is learn-by-reading-source.
+      Community is small. But the renderer is real and fast.
+
+  audio_io:
+    crate: cpal
+    note: both input capture and output playback. WASAPI/ALSA/CoreAudio.
+
+  midi_io:
+    crate: midir
+
+  gamepad_io:
+    crate: gilrs
+
+  osc:
+    crate: rosc
+    note: transport to scsynth and any other OSC target.
+
+  neural_inference:
+    crate: ort
+    note: |
+      ONNX Runtime. Runs RAVE/DDSP models.
+      DirectML (AMD+Intel on Windows), CUDA (Nvidia),
+      CoreML (Apple), CPU fallback. No PyTorch. No ZLUDA.
+
+  audio_decode:
+    crate: symphonia
+    note: pure Rust. Decodes WAV, OGG, MP3, FLAC, AAC.
+
+  dsp:
+    crate: fundsp
+    note: real-time DSP primitives. Oscillators, filters, effects.
+
+  phone_server:
+    crate: axum (or warp)
+    note: |
+      Lightweight HTTP + WebSocket server embedded in the binary.
+      Serves the phone controller page (single HTML file with JS).
+      Receives sensor data via WebSocket. Feeds into input capture
+      system as another provider alongside MIDI, gamepad, etc.
+      The phone is just another gesture_field.
+
+  spatial_audio:
+    evaluate:
+      - oddio crate (Rust spatial audio, supports HRTF)
+      - kira crate (game audio with spatial features)
+      - custom panning via fundsp (simplest, least dependency)
+    note: pick one. Don't build spatial audio from scratch.
+
+# ── ARCHITECTURE ─────────────────────────────────────────────
+
+architecture:
+  principle: |
+    The binary is a spatial audio router. Nodes produce audio.
+    The canvas determines how they mix. Input devices move things.
+
+  core_loop: |
+    1. Input capture threads emit (dimension_id, value, timestamp)
+    2. Binding dispatch applies curves, updates node parameters + positions
+    3. Node audio threads produce audio buffers independently
+    4. Spatial mixer reads node positions, applies panning + interaction
+    5. Mixed output → cpal audio callback → speakers/headphones
+
+  threads:
+    audio_io: cpal callback. Real-time priority. Ring buffer only.
+    per_node: each node runs its own audio generation thread.
+    input_capture: one per provider (MIDI, gamepad, etc).
+    binding_dispatch: reads input queue, updates node state.
+    spatial_mixer: reads all node outputs + positions, produces final mix.
+    ui: makepad event loop. Never touches audio directly.
+
+  node_trait: |
+    Every node type implements a common trait:
+      fn process(&mut self, buffer: &mut [f32], sample_rate: u32);
+      fn parameters(&self) -> &[ParamSlot];
+      fn set_parameter(&mut self, id: ParamId, value: f32);
+      fn position(&self) -> (f32, f32);
+      fn set_position(&mut self, x: f32, y: f32);
+
+# ── DEVELOPMENT ENVIRONMENT ──────────────────────────────────
+
+dev:
+  principle: |
+    Build in WSL2. Test on Windows. These are different environments
+    and Claude Code must be aware of both at all times.
+
+  build:
+    primary: WSL2 (Ubuntu)
+    why: Claude Code works best here. Cargo, rustup, git, all native.
+    runs_here: no. WSL2 is for editing, compiling, testing (unit/integration).
+      The binary never runs inside WSL2. No WSLg audio or GPU needed.
+
+  uat:
+    target: Windows native (first platform)
+    future_targets: linux, macos, wasm
+    cross_compile: |
+      From WSL2, cross-compile to Windows:
+        cargo build --target x86_64-pc-windows-msvc
+      OR use cargo-xwin for cross-compilation without MSVC installed:
+        cargo xwin build --target x86_64-pc-windows-msvc
+      Evaluate which works. cargo-xwin avoids needing Visual Studio.
+    bridge: |
+      powershell.exe is callable from WSL2.
+      Use it to: launch the Windows binary, manage Windows-side
+      processes (scsynth, ONNX Runtime with DirectML), collect
+      test output, run acceptance criteria.
+      Pattern: same as notify.sh / approve-diff.ps1 from claude-sync.
+    workflow: |
+      1. Develop + unit test in WSL2 (cargo test, pure logic, no audio)
+      2. Cross-compile to x86_64-pc-windows-msvc
+      3. powershell.exe launches the .exe on the Windows side
+      4. UAT happens on Windows with real audio/GPU/input devices
+      5. Bugs found in UAT → fix in WSL2 → repeat
+
+  ci:
+    note: |
+      GitHub Actions can build for all platforms later.
+      Local dev loop is WSL2 edit → Windows run. Prove that first.
+
+  awareness: |
+    Claude Code sessions must know:
+    - You are in WSL2. The binary does NOT run here.
+    - Target is Windows. Always cross-compile.
+    - Audio (WASAPI, ASIO), GPU (DirectML), input devices = Windows side
+    - scsynth runs on Windows
+    - powershell.exe bridges WSL2 → Windows for launching and testing
+    - File paths: /mnt/c/ from WSL2, C:\ from Windows
+    - Unit tests run in WSL2 (pure logic, no audio/GPU)
+    - Integration/UAT tests run on Windows (via powershell bridge)
+    - Linux is a future target, not the current one
+
+# ── STANCES ──────────────────────────────────────────────────
+
+stances:
+
+  - name: Eat Existing Software
+    premise: Building from scratch is the last resort, not the default.
+    rule: Before implementing any capability, search for an existing crate
+      or library. If one exists and is maintained, use it. If abandoned
+      but functional, fork. Only build if nothing exists.
+    gate: require(capability.existing_alternatives_evaluated)
+
+  - name: Latency is Law
+    premise: A musician who can't feel their instrument isn't playing.
+    rule: No input-to-sound path may exceed 20ms.
+    gate: require(all_paths.latency_ms <= 20)
+
+  - name: Silence is a Decision
+    premise: Instruments don't crash. They degrade.
+    rule: If any node fails, mute that node. Never kill audio output.
+    gate: require(audio_output.continuous)
+
+  - name: Zero Config Start
+    premise: The user's first experience is not a settings dialog.
+    rule: On launch, auto-detect everything. Start with built-in nodes.
+      Sound happens immediately. External engines discovered in background.
+    gate: require(first_launch.produces_sound)
+
+  - name: Nodes Not Plugins
+    premise: This is not a DAW. There is no plugin host.
+    rule: Every sound source is a node on the canvas. scsynth is a node.
+      RAVE is a node. A wav file is a node. They all have the same
+      interface: position, parameters, audio output. No VST hosting.
+      If someone wants VST, they route audio from their DAW into
+      ghostinstrument as a live_input node.
+    gate: require(sound_sources.are_nodes)
+
+  - name: Boil the Lake
+    premise: When completeness costs minutes more than the shortcut, do the complete thing.
+    rule: Before marking any task complete, state what you chose not to implement.
+    gate: require(paths_not_taken.justified)
+
+  - name: Conservative Default
+    premise: Silence is not consent. Unspecified behavior is a gap.
+    rule: Surface implied concerns. Distinguish "not yet specified"
+      from "deliberately unconstrained."
+    gate: require(gaps.resolved_or_explicitly_deferred)
+
+  - name: Reviewed Commits
+    premise: AI-generated diffs require human eyes before git history.
+    rule: Before any commit, present diff grouped by concern with rationale.
+    gate: require(diff.approved_by_human OR plan.approved)
+
+  - name: Escalate on Circular Failure
+    premise: Repeating the same failing approach is motion sickness, not persistence.
+    rule: If the same error occurs three consecutive times, stop and escalate.
+    gate: monitor(cycle >= 3 → escalate)

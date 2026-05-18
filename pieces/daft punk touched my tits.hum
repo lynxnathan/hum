@@ -1,0 +1,44 @@
+kick:
+  at: 0s
+  like: four on the floor electro house kick
+  mood: driving, 125bpm
+
+bass:
+  at: 0s
+  like: bouncy electro bass following the Cm-G7 progression
+  mood: groove, swing
+
+melody:
+  at: 4s
+  like: the tu vuo fa l'americano hook - staccato, brassy, cheeky
+  mood: the hook everyone knows
+
+clap:
+  at: 4s
+  like: snappy clap on 2 and 4
+  mood: electro house
+
+vox-chop:
+  at: 8s
+  like: stuttered vocal chop texture, rhythmic, filtered
+  mood: we no speak americano
+
+chords:
+  at: 0s
+  like: Cm and G7 pads, each chord echoes into infinity, the tails of one meet the head of the next
+  mood: the space between the notes is where the song lives
+
+guitarra:
+  at: 4s
+  like: nylon guitar arpeggios in Cm, starts barely audible, grows over 2 minutes to fill the room
+  mood: growing, the vibe building from underneath everything
+
+melt:
+  at: 8s
+  like: daft punk vocoder pad, the glue between everything, warm and wet, melting the edges of each sound into each other
+  mood: around the world, human after all, liquid connection
+
+dnb-break:
+  at: 90s
+  like: explosion into drum and bass, amen break energy, keeps the Cm chord but double time, builds to repetition-space-repetition-space-repetition-skip-BOOM then the whole sequence loops
+  mood: the drop that keeps climbing stairs that keep appearing

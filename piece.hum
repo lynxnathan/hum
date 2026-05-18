@@ -1,0 +1,11 @@
+kali-tandava:
+  at: 0s
+  like: the dance that ends and starts the world in the same step
+  mood: everything at once
+  synth:
+    osc: "saw(detune: 0.05) + pulse(width: 0.02)"
+    filter: "bpf(cutoff: 80~8000, q: 1~12)"
+    distort: "tanh(drive: 1~12)"
+    fx: "delay(time: 0.33~0.01, feedback: 0.8~0.2)"
+    pan: "noise(rate: 0.01~4, range: -1~1)"
+    amp: 0.01~0.20

@@ -1,0 +1,17 @@
+test-sine:
+  at: 0s
+  like: a simple filtered sine
+  synth:
+    osc: sine
+    filter: lpf(cutoff: 800)
+    amp: 0.2
+
+test-melody:
+  at: 3s
+  like: godfather melody on saw
+  synth:
+    osc: saw
+    filter: lpf(cutoff: 2000)
+    amp: 0.15
+    notes: [D4, D4, D4, D4, Eb4, D4, C#4, D4]
+    tempo: 0.35
