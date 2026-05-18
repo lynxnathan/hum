@@ -72,7 +72,7 @@ You can hand-edit either file if you want — they're plain text — but the des
 
 ## What you get
 
-A daemon (`hum-rt`) and an optional Makepad-based GUI (`hum-gui`). The CLI surface:
+A daemon (`hum-rt`) with a CLI client. The surface:
 
 ```
 hum play              # start playback
@@ -86,20 +86,20 @@ hum dict list         # show shared vocabulary
 hum dict add <term>   # capture current thing's synth as a new dict entry
 hum suggest           # compositional hints grounded in the piece
 hum analyze           # frequency balance assessment
-hum gui               # open the Makepad window
 ```
 
 Editing `piece.hum` while playing updates the sound within ~1s. Editing a running `.scd` reloads the SynthDef and crossfades. Files under `/mnt/` (NTFS via WSL2) are handled via a `PollWatcher` fallback because inotify doesn't see them.
 
 ## What ships in this repo
 
-Three binaries from one Cargo workspace:
+Two binaries from one Cargo workspace:
 
 | Binary | What it does |
 |---|---|
 | **`hum-rt`** | The daemon. Parses `.hum`, loads `.scd`, diffs state, sends OSC to scsynth, runs a Unix-socket transport server. Also the CLI client — `hum play` dispatches over that socket. |
-| **`hum-gui`** | Makepad window: live spectral analyzer (shader-rendered FFT from scsynth), arrangement view (things as colored blocks on a timeline), per-thing VU meters, embedded PTY terminal (run Claude Code or any shell inside the window), MilkDrop-style visualizer with live shader editing, DAW keyboard shortcuts, Catppuccin Mocha theme. |
 | **`ghostinstrument`** | A different bet — see below. |
+
+There is also a `hum-gui` binary target under `src/bin/gui/` (Makepad shell with spectral analyzer, arrangement view, embedded PTY terminal, visualizer with live shader editing). It compiles but isn't in a state worth using yet — pieces work in isolation, the whole doesn't cohere. Treat it as exploratory code, not as something to launch.
 
 ## Ground tested
 
@@ -133,15 +133,11 @@ There is no installer. There are no release binaries. The README you are reading
 Prereqs:
 - Rust (edition 2024, `rustc ≥ 1.85`)
 - SuperCollider (`scsynth`) reachable on a UDP port — locally or on another host
-- For `hum-gui`: a working Makepad install (Linux/macOS works out of the box; on WSL2 you'll want an X server or WSLg)
 - For `ghostinstrument` Windows builds: `cargo-xwin` and the MSVC SDK headers it fetches
 
 ```bash
 # daemon + CLI
 cargo build --release --bin hum-rt
-
-# Makepad GUI
-cargo build --release --bin hum-gui --features hum-gui
 
 # ghostinstrument (spatial canvas, v5 work-in-progress)
 cargo build --release --bin ghostinstrument
@@ -176,7 +172,7 @@ src/
   instruments.rs         # reusable instrument definitions
   stage.rs               # stage effects (group buses + fx chains)
   assistant.rs           # hum suggest / hum analyze
-  bin/gui/               # hum-gui — Makepad shell, visualizer, terminal, arrangement
+  bin/gui/               # hum-gui — exploratory Makepad shell (not currently usable)
   bin/ghostinstrument/   # v5 spatial canvas
 pieces/                  # example .hum pieces with compiled SynthDefs
 out/sc/                  # default compile target for the LLM
